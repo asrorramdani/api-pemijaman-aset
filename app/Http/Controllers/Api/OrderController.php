@@ -4,87 +4,101 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Models\ActivityLog;
-
 
 class OrderController extends Controller
 {
+    /**
+     * 📋 ADMIN - Get all orders
+     */
     public function index()
     {
+        $orders = Order::with('user')->get();
+
         return response()->json([
             'status' => true,
-            'data' => Order::with('user')->get()
+            'data'   => $orders,
         ]);
     }
-public function store(Request $request)
-{
-    $request->validate([
-        'borrow_date' => 'required|date'
-    ]);
 
-    $order = Order::create([
-        'user_id'     => $request->user()->id,
-        'borrow_date' => $request->borrow_date,
-        'status'      => 'dipinjam'
-    ]);
+    /**
+     * ➕ USER - Create order
+     */
+    public function store(Request $request)
+    {
+        $request->validate([
+            'borrow_date' => 'required|date',
+        ]);
 
-    ActivityLog::create([
-        'user_id'     => $request->user()->id,
-        'action'      => 'CREATE_ORDER',
-        'description' => 'Membuat order ID ' . $order->id
-    ]);
+        $order = Order::create([
+            'user_id'     => $request->user()->id,
+            'borrow_date' => $request->borrow_date,
+            'status'      => 'dipinjam',
+        ]);
 
-    return response()->json([
-        'status'  => true,
-        'message' => 'Order berhasil dibuat',
-        'data'    => $order
-    ], 201);
-}
+        ActivityLog::create([
+            'user_id'     => $request->user()->id,
+            'action'      => 'CREATE_ORDER',
+            'description' => 'Membuat order ID ' . $order->id,
+        ]);
 
+        return response()->json([
+            'status'  => true,
+            'message' => 'Order berhasil dibuat',
+            'data'    => $order,
+        ], 201);
+    }
 
-    public function show($id)
+    /**
+     * 🔍 ADMIN - Detail order
+     */
+    public function show(int $id)
     {
         $order = Order::with(['user', 'items.product'])->find($id);
 
         if (!$order) {
             return response()->json([
-                'status' => false,
-                'message' => 'Order tidak ditemukan'
+                'status'  => false,
+                'message' => 'Order tidak ditemukan',
             ], 404);
         }
 
         return response()->json([
             'status' => true,
-            'data' => $order
+            'data'   => $order,
         ]);
     }
 
-    // 🔁 KEMBALIKAN (ADMIN)
-    public function update($id)
+    /**
+     * 🔁 ADMIN - Pengembalian order
+     */
+    public function update(int $id)
     {
         $order = Order::find($id);
 
         if (!$order) {
             return response()->json([
-                'status' => false,
-                'message' => 'Order tidak ditemukan'
+                'status'  => false,
+                'message' => 'Order tidak ditemukan',
             ], 404);
         }
 
         $order->update([
-            'status' => 'dikembalikan',
-            'return_date' => now()
+            'status'      => 'dikembalikan',
+            'return_date' => now(),
         ]);
 
         return response()->json([
-            'status' => true,
-            'message' => 'Order dikembalikan'
+            'status'  => true,
+            'message' => 'Order dikembalikan',
         ]);
     }
 
-    // 📦 ORDER USER LOGIN
+    /**
+     * 📦 USER - Orders milik user login
+     */
     public function myOrders(Request $request)
     {
         $orders = Order::with(['items.product'])
@@ -94,77 +108,75 @@ public function store(Request $request)
 
         return response()->json([
             'status' => true,
-            'data' => $orders
+            'data'   => $orders,
         ]);
     }
 
-    // ✅ CHECKOUT / SELESAIKAN ORDER
-public function checkout($id)
-{
-    DB::beginTransaction();
+    /**
+     * ✅ Checkout order
+     */
+    public function checkout(int $id)
+    {
+        DB::beginTransaction();
 
-    try {
-        $order = Order::where('id', $id)
-            ->where('status', 'dipinjam')
-            ->first();
+        try {
+            $order = Order::where('id', $id)
+                ->where('status', 'dipinjam')
+                ->first();
+
+            if (!$order) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'Order tidak valid atau sudah selesai',
+                ], 400);
+            }
+
+            $order->update([
+                'status'      => 'selesai',
+                'return_date' => now(),
+            ]);
+
+            ActivityLog::create([
+                'user_id'     => $order->user_id,
+                'action'      => 'CHECKOUT_ORDER',
+                'description' => 'Checkout order ID ' . $order->id,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'Checkout berhasil',
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status'  => false,
+                'message' => 'Checkout gagal',
+            ], 500);
+        }
+    }
+
+    /**
+     * ❌ ADMIN - Delete order
+     */
+    public function destroy(int $id)
+    {
+        $order = Order::find($id);
 
         if (!$order) {
             return response()->json([
-                'status' => false,
-                'message' => 'Order tidak valid atau sudah selesai'
-            ], 400);
+                'status'  => false,
+                'message' => 'Order tidak ditemukan',
+            ], 404);
         }
 
-        $order->update([
-            'status'      => 'selesai',
-            'return_date' => now()
-        ]);
-
-        ActivityLog::create([
-            'user_id'     => $order->user_id,
-            'action'      => 'CHECKOUT_ORDER',
-            'description' => 'Checkout order ID ' . $order->id
-        ]);
-
-        DB::commit();
+        $order->delete();
 
         return response()->json([
             'status'  => true,
-            'message' => 'Checkout berhasil'
+            'message' => 'Order berhasil dihapus',
         ]);
-
-    } catch (\Exception $e) {
-    DB::rollBack();
-
-    return response()->json([
-        'status' => false,
-        'message' => 'Checkout gagal',
-        'error'   => $e->getMessage()
-    ], 500);}
-
-}
-    
-
-    public function destroy($id)
-{
-    $order = Order::find($id);
-
-    if (!$order) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Order tidak ditemukan'
-        ], 404);
     }
-
-    $order->delete();
-
-    return response()->json([
-        'status' => true,
-        'message' => 'Order berhasil dihapus'
-    ]);
-
 }
-}
-
-
-
