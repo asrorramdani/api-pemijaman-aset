@@ -20,12 +20,16 @@ Route::post('/register', [AuthController::class, 'register']);
 
 /*
 |--------------------------------------------------------------------------
-| AUTHENTICATED (JWT)
+| AUTHENTICATED (JWT REQUIRED)
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth:api')->group(function () {
 
-    // PROFILE
+    /*
+    |--------------------------------------------------------------------------
+    | PROFILE
+    |--------------------------------------------------------------------------
+    */
     Route::get('/profile', function () {
         return response()->json(Auth::guard('api')->user());
     });
@@ -56,10 +60,13 @@ Route::middleware('auth:api')->group(function () {
         // Products
         Route::apiResource('products', ProductController::class);
 
-        // Orders (ADMIN MONITORING & RETURN)
+        // Orders (admin view & update)
         Route::get('/orders', [OrderController::class, 'index']);
         Route::get('/orders/{id}', [OrderController::class, 'show']);
-        Route::put('/orders/{id}', [OrderController::class, 'update']); // pengembalian
+        Route::put('/orders/{id}', [OrderController::class, 'update']);
+
+        // ⚠️ HAPUS kalau destroy() belum ada
+        // Route::delete('/orders/{id}', [OrderController::class, 'destroy']);
     });
 
     /*
@@ -74,10 +81,11 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/my-orders', [OrderController::class, 'myOrders']);
         Route::post('/orders/{id}/checkout', [OrderController::class, 'checkout']);
 
-        // Order Items (FULL CRUD USER)
+        // Order Items
+        Route::get('/order-items', [OrderItemController::class, 'index']);
+        Route::get('/order-items/{id}', [OrderItemController::class, 'show']);
         Route::post('/order-items', [OrderItemController::class, 'store']);
         Route::put('/order-items/{id}', [OrderItemController::class, 'update']);
         Route::delete('/order-items/{id}', [OrderItemController::class, 'destroy']);
     });
-
 });

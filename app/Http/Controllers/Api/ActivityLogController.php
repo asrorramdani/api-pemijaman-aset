@@ -8,11 +8,13 @@ use Illuminate\Http\Request;
 
 class ActivityLogController extends Controller
 {
-    // 🔍 GET semua activity log (ADMIN)
+    /**
+     * GET semua activity log (ADMIN)
+     */
     public function index()
     {
         $logs = ActivityLog::with('user')
-            ->latest()
+            ->orderByDesc('created_at')
             ->paginate(10);
 
         return response()->json([
@@ -21,12 +23,14 @@ class ActivityLogController extends Controller
         ]);
     }
 
-    // 🔍 GET activity log user login
+    /**
+     * GET activity log user yang sedang login
+     */
     public function myLogs(Request $request)
     {
         $logs = ActivityLog::with('user')
             ->where('user_id', $request->user()->id)
-            ->latest()
+            ->orderByDesc('created_at')
             ->paginate(10);
 
         return response()->json([
@@ -35,7 +39,9 @@ class ActivityLogController extends Controller
         ]);
     }
 
-    // 🔍 GET detail activity log
+    /**
+     * GET detail activity log berdasarkan ID
+     */
     public function show($id)
     {
         $log = ActivityLog::with('user')->find($id);
@@ -53,7 +59,9 @@ class ActivityLogController extends Controller
         ]);
     }
 
-    // ❌ DELETE activity log (ADMIN)
+    /**
+     * DELETE activity log (ADMIN)
+     */
     public function destroy($id)
     {
         $log = ActivityLog::find($id);
