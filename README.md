@@ -21,17 +21,22 @@ pembuatan order, pengelolaan item order, hingga pencatatan activity log.
 
 ## Cara Menjalankan Sistem
 
-1. Clone Repository
-```bash
+1. Clone Repository bash
+
 git clone https://github.com/username/peminjaman-aset.git
 cd peminjaman-aset
+
 2. Install Dependency
+
 composer install
+
 3. Konfigurasi Environment
 cp .env.example .env
 php artisan key:generate
+
 4. Migrasi Database
 php artisan migrate
+
 5. Jalankan Server
 php artisan serve
 Akses API di:
@@ -67,7 +72,7 @@ Parameter
 
 Contoh request & response
 
- Struktur Project
+Struktur Project
 app/
 routes/
 database/
