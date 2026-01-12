@@ -9,7 +9,6 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\OrderItemController;
 use App\Http\Controllers\Api\ActivityLogController;
-use App\Models\ActivityLog;
 
 /*
 |--------------------------------------------------------------------------
@@ -27,7 +26,9 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::middleware('auth:api')->group(function () {
 
     /*
+    |--------------------------------------------------------------------------
     | PROFILE
+    |--------------------------------------------------------------------------
     */
     Route::get('/profile', function () {
         return response()->json(Auth::guard('api')->user());
@@ -35,24 +36,16 @@ Route::middleware('auth:api')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | ACTIVITY LOG (SEMUA USER LOGIN BISA LIHAT)
+    | ACTIVITY LOG
     |--------------------------------------------------------------------------
     */
-
-    Route::middleware('auth:api')->group(function () {
-
-     // USER → lihat log sendiri
     Route::get('/my-activity-logs', [ActivityLogController::class, 'myLogs']);
 
-    // ADMIN
     Route::middleware('role:admin')->group(function () {
         Route::get('/activity-logs', [ActivityLogController::class, 'index']);
         Route::get('/activity-logs/{id}', [ActivityLogController::class, 'show']);
         Route::delete('/activity-logs/{id}', [ActivityLogController::class, 'destroy']);
     });
-
-});
-
 
     /*
     |--------------------------------------------------------------------------
@@ -61,22 +54,19 @@ Route::middleware('auth:api')->group(function () {
     */
     Route::middleware('role:admin')->group(function () {
 
-        // Categories (FULL CRUD)
-        Route::get('/categories', [CategoryController::class, 'index']);
-        Route::post('/categories', [CategoryController::class, 'store']);
-        Route::get('/categories/{id}', [CategoryController::class, 'show']);
-        Route::put('/categories/{id}', [CategoryController::class, 'update']);
-        Route::delete('/categories/{id}', [CategoryController::class, 'destroy']);
+        // Categories
+        Route::apiResource('categories', CategoryController::class);
 
-        // Products (FULL CRUD)
-        Route::get('/products', [ProductController::class, 'index']);
-        Route::post('/products', [ProductController::class, 'store']);
-        Route::get('/products/{id}', [ProductController::class, 'show']);
-        Route::put('/products/{id}', [ProductController::class, 'update']);
-        Route::delete('/products/{id}', [ProductController::class, 'destroy']);
+        // Products
+        Route::apiResource('products', ProductController::class);
 
-        // Update order (pengembalian)
+        // Orders (admin view & update)
+        Route::get('/orders', [OrderController::class, 'index']);
+        Route::get('/orders/{id}', [OrderController::class, 'show']);
         Route::put('/orders/{id}', [OrderController::class, 'update']);
+
+        // ⚠️ HAPUS kalau destroy() belum ada
+        // Route::delete('/orders/{id}', [OrderController::class, 'destroy']);
     });
 
     /*
@@ -86,33 +76,16 @@ Route::middleware('auth:api')->group(function () {
     */
     Route::middleware('role:user')->group(function () {
 
-
-     // USER
-    Route::middleware('role:user')->group(function () {
+        // Orders
         Route::post('/orders', [OrderController::class, 'store']);
         Route::get('/my-orders', [OrderController::class, 'myOrders']);
         Route::post('/orders/{id}/checkout', [OrderController::class, 'checkout']);
+
+        // Order Items
+        Route::get('/order-items', [OrderItemController::class, 'index']);
+        Route::get('/order-items/{id}', [OrderItemController::class, 'show']);
+        Route::post('/order-items', [OrderItemController::class, 'store']);
+        Route::put('/order-items/{id}', [OrderItemController::class, 'update']);
+        Route::delete('/order-items/{id}', [OrderItemController::class, 'destroy']);
     });
-
-    // ADMIN
-    Route::middleware('role:admin')->group(function () {
-        Route::get('/orders', [OrderController::class, 'index']);
-        Route::get('/orders/{id}', [OrderController::class, 'show']);
-        Route::put('/orders/{id}', [OrderController::class, 'update']);
-        Route::delete('/orders/{id}', [OrderController::class, 'destroy'])
-        ->middleware(['auth:api', 'role:admin']);
-
-    });
-
-// ORDER ITEMS
-    Route::get('/order-items', [OrderItemController::class, 'index']);        // READ ALL (admin)
-    Route::get('/order-items/{id}', [OrderItemController::class, 'show']);   // READ ONE
-    Route::post('/order-items', [OrderItemController::class, 'store']);      // CREATE
-    Route::put('/order-items/{id}', [OrderItemController::class, 'update']); // UPDATE
-    Route::delete('/order-items/{id}', [OrderItemController::class, 'destroy']); // DELETE
-
-        // Checkout
-        Route::post('/orders/{id}/checkout', [OrderController::class, 'checkout']);
-    });
-
 });
