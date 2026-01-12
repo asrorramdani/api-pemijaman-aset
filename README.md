@@ -21,7 +21,7 @@ pembuatan order, pengelolaan item order, hingga pencatatan activity log.
 
 ## Cara Menjalankan Sistem
 
-### 1. Clone Repository
+1. Clone Repository
 ```bash
 git clone https://github.com/username/peminjaman-aset.git
 cd peminjaman-aset
